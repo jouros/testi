@@ -154,6 +154,7 @@
   command: "{{ item }}"
   with_items:
     - mkdir -p /home/k8s-admin/.kube
+    - chown k8s-admin:k8s-admin /home/k8s-admin/.kube
     - cp -i /etc/kubernetes/admin.conf /home/k8s-admin/.kube/config
     - chown k8s-admin:k8s-admin /home/k8s-admin/.kube/config
 
