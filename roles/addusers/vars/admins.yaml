@@ -1,0 +1,4 @@
+---
+# vars file for addusers
+admins:
+  - k8s-admin 

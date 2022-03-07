@@ -1,0 +1,15 @@
+---
+- name: Linux host setup
+  become: yes
+  hosts: all 
+  gather_facts: no
+  vars:
+    VER_NUM: 2
+    TARGET: kubernetes
+  roles:
+    - { role: setup, tags: ['setup'] }
+    - { role: addusers, tags: ['addusers'] }
+    - { role: addpubkey, tags: ['addpubkey'] }
+    - { role: sshpubkey-only, tags: ['sshpubkey-only'] }
+    - { role: kube-apt, tags: ['kube-apt'] }
+...

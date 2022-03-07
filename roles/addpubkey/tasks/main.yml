@@ -1,0 +1,9 @@
+---
+# tasks file for addpubkey
+- name: Add pubkey
+  authorized_key:
+    user: "{{ item }}"
+    key: "{{ lookup('file', '{{ playbook_dir }}/roles/addpubkey/files/{{ item }}.pub') }}"
+  with_items:
+    - "{{ addkey }}"
+...

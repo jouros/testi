@@ -1,0 +1,7 @@
+[control-plane]
+arc1-0 ansible_host=192.168.122.74 ansible_port=22
+
+[workers]
+arc1-1 ansible_host=192.168.122.217 ansible_port=22
+arc1-2 ansible_host=192.168.122.72 ansible_port=22
+arc1-3 ansible_host=192.168.122.94 ansible_port=22

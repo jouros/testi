@@ -1,0 +1,198 @@
+---
+# tasks file for control-plane
+- name: Check host
+  command: hostname
+  register: response
+
+- name: Show response
+  debug:
+    msg: "{{ response.stdout.split('\n') }}"
+
+- name: Install docker and its dependecies
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  register: task_result
+  until: task_result is success
+  retries: 20
+  delay: 2
+  vars:
+    packages:
+    - containerd.io
+  notify:
+    - containerd status
+
+- name: Hold containerd.io
+  dpkg_selections:
+    name: containerd.io
+    selection: hold
+  register: cmd_out
+
+#- name: Add k8s-admin user to docker group
+#  user:
+#    name: k8s-admin
+#    group: docker
+
+- name: Install Kubernetes binaries
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  register: task_result
+  until: task_result is success
+  retries: 20
+  delay: 2
+  vars:
+    packages:
+      - kubelet
+      - kubeadm
+      - kubectl
+
+- name: Hold kubelet
+  dpkg_selections:
+    name: kubelet
+    selection: hold
+  register: cmd_out
+
+- name: Hold kubeadm
+  dpkg_selections:
+    name: kubeadm
+    selection: hold
+  register: cmd_out
+
+- name: Hold kubectl
+  dpkg_selections:
+    name: kubectl
+    selection: hold
+  register: cmd_out
+
+- name: Check kubectl version
+  command: kubectl version --client
+  register: cmd_out
+
+- debug:
+    msg: "{{ cmd_out.stdout }}"
+
+- name: Check kubeadm version
+  command: kubeadm version
+  register: cmd_out
+
+- debug:
+    msg: "{{ cmd_out.stdout }}"
+
+- name: Create /etc/modules-load.d/containerd.conf
+  copy:
+    dest: /etc/modules-load.d/containerd.conf
+    content: |
+      overlay
+      br_netfilter
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Modprobe overlay
+  modprobe:
+    name: overlay
+    state: present
+  register: cmd_out
+
+- name: Modprobe br_netfilter
+  modprobe:
+    name: br_netfilter
+    state: present
+  register: cmd_out
+
+- name: Setup required sysctl params, these persist across reboots
+  copy:
+    dest: /etc/sysctl.d/99-kubernetes-cri.conf
+    content: |
+     net.bridge.bridge-nf-call-iptables  = 1
+     net.ipv4.ip_forward                 = 1
+     net.bridge.bridge-nf-call-ip6tables = 1
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Apply sysctl params without reboot
+  command: sysctl --system
+  register: cmd_out
+
+- debug:
+    msg: "{{ cmd_out.stdout }}"
+
+- name: Mkdir /etc/containerd
+  file:
+    path: /etc/containerd
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure containerd
+  shell: | 
+    /usr/bin/containerd config default > /etc/containerd/config.toml
+
+- name: Restart containerd
+  systemd: 
+    name: containerd
+    state: restarted
+    enabled: yes
+    daemon-reload: yes
+     
+- debug:
+    msg: "{{ cmd_out.stdout }}"
+
+- name: Initialize the Kubernetes cluster using kubeadm
+  command: kubeadm init --ignore-preflight-errors=NumCPU,Mem --node-name arc1-0 --pod-network-cidr=10.244.0.0/16 --cri-socket /run/containerd/containerd.sock --upload-certs --control-plane-endpoint=arc1-0
+  register: kube_init
+
+- debug: 
+    msg: "{{ kube_init.stdout_lines }}"
+
+- name: Setup kubeconfig for k8s-admin user
+  command: "{{ item }}"
+  with_items:
+    - mkdir -p /home/k8s-admin/.kube
+    - cp -i /etc/kubernetes/admin.conf /home/k8s-admin/.kube/config
+    - chown k8s-admin:k8s-admin /home/k8s-admin/.kube/config
+
+- name: Copy custom-resources.yaml to remote
+  copy:
+    src: custom-resources.yaml
+    dest: /home/k8s-admin/custom-resources.yaml
+    owner: k8s-admin
+    group: k8s-admin
+    mode: '0755'
+
+- name: Install calico pod network
+  become: yes
+  become_user: k8s-admin 
+  shell: | 
+    kubectl create -f https://projectcalico.docs.tigera.io/manifests/tigera-operator.yaml
+    kubectl create -f /home/k8s-admin/custom-resources.yaml 
+  register: calico_out
+
+- debug: 
+    msg: "{{ calico_out.stdout_lines }}"
+
+- name: Generate join command
+  command: kubeadm token create --print-join-command
+  register: join_command
+
+- name: Copy join command to local file
+  become: no
+  local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+
+- name: Enable service kubelet, and enable persistently
+  service: 
+    name: kubelet
+    enabled: yes
+
+- name: Reboot 
+  reboot:
+    post_reboot_delay: 60
+    reboot_timeout: 80
+    connect_timeout: 300
+    test_command: uptime    
+...

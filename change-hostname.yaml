@@ -1,0 +1,58 @@
+---
+# Change target hostname and /etc/
+- hosts: localhost
+  gather_facts: no
+  vars_prompt:
+  - name: target_host
+    prompt: Enter target hostname as it is in inventory/hosts
+    private: no
+ 
+  tasks:
+    - add_host:
+        name: "{{ item }}"
+        groups: dynamically_created_hosts
+      with_items: "{{ target_host.split(',') }}"
+ 
+- name: Change target hostname
+  hosts: dynamically_created_hosts
+  gather_facts: no
+ 
+  tasks:
+  - name: Change /etc/hosts
+    become: yes
+    lineinfile:
+      path: /etc/hosts
+      regexp: '^127.0.1.1[ \t]+ubuntu'
+      line: "127.0.1.1 {{ inventory_hostname}}.bof.fi {{ inventory_hostname }}"
+      state: present
+ 
+  - name: Change hostname
+    become: yes
+    command: "hostnamectl set-hostname {{ inventory_hostname }}"
+ 
+  - name: Check hostnamectl
+    become: yes
+    command: hostnamectl
+    register: cmd_out
+ 
+  - debug:
+      msg: "{{ cmd_out.stdout.split('\n') }}"
+ 
+  - name: Add invetory to /etc/hosts
+    become: yes
+    lineinfile:
+      dest: /etc/hosts
+      insertafter: '^127.0.1.1'
+      line: "{{ hostvars[item].ansible_host }} {{ item }}.bof.fi {{ item }}"
+      state: present
+    when: hostvars[item].ansible_host is defined
+    with_items: "{{ groups.all }}"
+ 
+  - name: Print current /etc/hosts
+    become: yes
+    command: cat /etc/hosts
+    register: cmd_out
+ 
+  - debug:
+      msg: "{{ cmd_out.stdout.split('\n') }}"
+...

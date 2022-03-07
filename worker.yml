@@ -1,0 +1,10 @@
+---
+- name: Linux host setup
+  hosts: workers
+  gather_facts: no
+  vars:
+    TARGET: kubernetes
+  roles:
+    - { role: worker, tags: ['worker'] }
+    - { role: worker-reset, tags: ['worker-reset'] }
+...

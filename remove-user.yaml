@@ -1,0 +1,16 @@
+---
+# Remove users
+- hosts: all
+  gather_facts: no
+  vars_prompt:
+    - name: username
+      prompt: Which user you wan't remove?
+      private: no
+ 
+  tasks:
+    - name: Remove
+      user:
+        name: "{{ username }}"
+        state: absent
+        remove: yes
+...

@@ -1,0 +1,51 @@
+---
+# tasks file for addusers
+# passwords ager generated: $ openssl passwd -6 -stdin
+# more info: openssl passwd -help
+- name: Include vars from file
+  include_vars:
+    file: admins.yaml
+ 
+- name: Add the user 'from list' with a bash shell, appending the group 'sudo' to the user's groups
+  user:
+    name: "{{ item }}"
+    shell: /bin/bash
+    groups: sudo
+    append: yes
+    password: $6$uIUaL3YuEscfcUO1$ZqnnJO8YxPbLRwHfxfxc4A6xzQuNGNgdWDLqTieiZZmExHTRDFdR8/oMS.t4rxpRwUtyy/D1SM9FCaZfdFECL/
+    update_password: on_create
+  with_items: "{{ admins }}"
+ 
+- name: Create ssh dirs
+  file:
+    path: "/home/{{ item }}/.ssh"
+    state: directory
+    owner:  "{{ item }}"
+    group: "{{ item }}"
+    mode: '0700'
+  with_items: "{{ admins }}"
+ 
+- name: Create ssh-keys
+  openssh_keypair:
+    path: "/home/{{ item }}/.ssh/id_rsa"
+    owner: "{{ item }}"
+    group: "{{ item }}"
+  with_items: "{{ admins }}"
+ 
+- name: Fix owner of pub-key
+  file:
+    path: "/home/{{ item }}/.ssh/id_rsa.pub"
+    owner: "{{ item }}"
+    group: "{{ item }}"
+  with_items: "{{ admins }}"
+ 
+- name: Add admins to sudoers
+  lineinfile:
+    path: "/etc/sudoers.d/{{ item }}"
+    line: "{{ item }} ALL=(ALL) NOPASSWD: ALL"
+    state: present
+    mode: '0400'
+    create: yes
+    validate: "visudo -cf %s"
+  with_items: "{{ admins }}"
+...

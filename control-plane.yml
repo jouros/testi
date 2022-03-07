@@ -1,0 +1,11 @@
+---
+- name: Master setup
+  hosts: control-plane
+  gather_facts: no
+  vars:
+    TARGET: kubernetes
+  roles:
+   - { role: control-plane, tags: ['control-plane'] }
+   - { role: addpubkey-multiple, tags: ['addpubkey-multiple'] }
+   - { role: control-plane-reset, tags: ['control-plane-reset'] }
+...

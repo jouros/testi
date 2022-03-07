@@ -1,0 +1,9 @@
+---
+# tasks file for addpubkey-multiple
+- name: Add pubkey
+  authorized_key:
+    user: k8s-admin 
+    key: "{% for key in lookup('fileglob', '*.pub').split(',') %}{{ lookup('file', key) ~ '\n'}}{% endfor %}" 
+    state: present
+    exclusive: no 
+...

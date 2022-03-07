@@ -1,0 +1,20 @@
+---
+# tasks file for sshpubkey-only
+- name: Disable root login over SSH
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "#PermitRootLogin prohibit-password"
+    line: "PermitRootLogin no"
+    state: present
+  notify:
+    - restart sshd
+ 
+- name: Disable password auth
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "#PasswordAuthentication yes"
+    line: "PasswordAuthentication no"
+    state: present
+  notify:
+    - restart sshd
+...

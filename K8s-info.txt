@@ -1,0 +1,41 @@
+
+Status check:
+kubectl cluster-info
+Kubernetes control plane is running at https://arc1-0:6443
+CoreDNS is running at https://arc1-0:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+sudo crictl --debug -r /run/containerd/containerd.sock info
+
+kubectl get nodes -o wide
+NAME     STATUS   ROLES                  AGE     VERSION   INTERNAL-IP      EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+arc1-0   Ready    control-plane,master   3m57s   v1.23.4   192.168.122.74   <none>        Ubuntu 20.04.4 LTS   5.4.0-100-generic   containerd://1.4.13
+
+kubectl get pods --all-namespaces
+NAMESPACE         NAME                                       READY   STATUS    RESTARTS         AGE
+calico-system     calico-kube-controllers-67f85d7449-4c4h7   1/1     Running   0                69s
+calico-system     calico-node-7l2kc                          1/1     Running   0                69s
+calico-system     calico-typha-64898d9f6c-n2fns              1/1     Running   0                69s
+kube-system       coredns-64897985d-jr5j8                    1/1     Running   0                103s
+kube-system       coredns-64897985d-tqjd9                    1/1     Running   0                103s
+kube-system       etcd-arc1-0                                1/1     Running   16 (2m26s ago)   4m11s
+kube-system       kube-apiserver-arc1-0                      1/1     Running   16 (2m26s ago)   4m11s
+kube-system       kube-controller-manager-arc1-0             1/1     Running   16 (2m26s ago)   4m18s
+kube-system       kube-proxy-wmmx4                           1/1     Running   0                104s
+kube-system       kube-scheduler-arc1-0                      1/1     Running   16 (2m26s ago)   4m17s
+tigera-operator   tigera-operator-747d647775-w4sqc           1/1     Running   1 (72s ago)      103s
+
+
+Uudelleen asennus:
+kubeadm reset
+rm /etc/containerd/config.toml
+/usr/bin/containerd config default | tee /etc/containerd/config.toml
+systemctl restart containerd
+crictl --debug -r /run/containerd/containerd.sock info
+rm /home/k8s-admin/.kube/config
+
+worker:
+kubeadm reset
+rm /etc/containerd/config.toml
+/usr/bin/containerd config default | tee /etc/containerd/config.toml
+systemctl restart containerd
+crictl --debug -r /run/containerd/containerd.sock info
+/tmp/join-command.sh

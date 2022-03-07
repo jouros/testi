@@ -1,0 +1,4 @@
+---
+# vars file for addpubkey
+addkey:
+  - k8s-admin 

@@ -1,0 +1,11 @@
+ssh-add ~/.ssh/id_rsa
+Enter passphrase for /home/deployer/.ssh/id_rsa:
+
+Jos tulee error: Could not open a connection to your authentication agent. tarkoittaa että agentti ei ole päällä =>
+
+eval $(ssh-agent)
+Agent pid 23347
+
+ssh-add -D
+All identities removed.
+

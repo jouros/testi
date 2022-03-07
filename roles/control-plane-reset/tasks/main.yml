@@ -1,0 +1,39 @@
+---
+# tasks file for control-plane-reset
+- name: Check host
+  command: hostname
+  register: response
+
+- name: Show response
+  debug:
+    msg: "{{ response.stdout_lines }}"
+
+- name: Kubeadm reset
+  expect:
+    command: /usr/bin/kubeadm reset
+    responses: 
+      'proceed?' : 'y'
+
+- name: rm /etc/containerd/config.toml
+  file: 
+    path: /etc/containerd/config.toml
+    state: absent
+
+- name: Rm /home/k8s-admin/.kube/config
+  file:
+    path: /home/k8s-admin/.kube/config
+    state: absent
+
+- name: Rm local join-command
+  file: 
+    path: "{{ playbook_dir }}/join-command"
+    state: absent
+  delegate_to: localhost
+
+- name: Reboot 
+  reboot:
+    post_reboot_delay: 60
+    reboot_timeout: 80
+    connect_timeout: 300
+    test_command: uptime    
+...

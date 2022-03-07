@@ -1,0 +1,33 @@
+---
+# tasks file for worker-reset
+- name: Check host
+  command: hostname
+  register: response
+
+- name: Show response
+  debug:
+    msg: "{{ response.stdout_lines }}"
+
+- name: Kubeadm reset
+  expect:
+    command: /usr/bin/kubeadm reset
+    responses:
+      'proceed?' : 'y'
+
+- name: rm /etc/containerd/config.toml
+  file:
+    path: /etc/containerd/config.toml
+    state: absent
+
+- name: Rm /tmp/join-command.sh
+  file:
+    path: /tmp/join-command.sh
+    state: absent
+
+- name: Reboot 
+  reboot:
+    post_reboot_delay: 60
+    reboot_timeout: 80
+    connect_timeout: 300
+    test_command: uptime    
+...

@@ -1,0 +1,14 @@
+---
+- name: Connection test
+  hosts: all
+  gather_facts: no
+  tasks:
+  - name: Check host
+    shell: |
+      uptime; uname -a; hostname; free -m 
+    register: response
+ 
+  - name: Show response
+    debug:
+      msg: "{{ response.stdout.split('\n') }}"
+...
